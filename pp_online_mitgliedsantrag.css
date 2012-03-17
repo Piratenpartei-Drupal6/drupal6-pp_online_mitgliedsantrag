@@ -1,0 +1,160 @@
+.pp_online_mitgliedsantrag_width_30 {
+	width: 25%;
+}
+.pp_online_mitgliedsantrag_width_50 {
+	width: 45%;
+}
+.pp_online_mitgliedsantrag_width_100 {
+	width: 95%;
+}
+
+
+#edit-pp-online-mitgliedsantrag-vorname-wrapper {
+	width: 50%;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-nachname-wrapper {
+	width: 50%;
+	float: right;
+}
+
+#edit-pp-online-mitgliedsantrag-adresszusatz-wrapper {
+	width: 50%;
+	float: left;
+}
+
+#edit-pp-online-mitgliedsantrag-strasse-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-hausnummer-wrapper {
+	width: 50%;
+	float: right;
+}
+
+
+#edit-pp-online-mitgliedsantrag-plz-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-ort-wrapper {
+	width: 50%;
+	float: right;
+}
+
+
+#edit-pp-online-mitgliedsantrag-geburtsdatum-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-nationalitaet-wrapper {
+	width: 50%;
+	float: right;
+}
+
+
+#edit-pp-online-mitgliedsantrag-email-1-wrapper {
+	width: 50%;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-email-2-wrapper {
+	width: 50%;
+	float: right;
+}
+
+#edit-pp-online-mitgliedsantrag-telefon-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+
+
+#edit-pp-online-mitgliedsantrag-kontoinhaber-wrapper {
+	width: 50%;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-kontonummer-wrapper {
+	width: 50%;
+	float: right;
+}
+
+
+#edit-pp-online-mitgliedsantrag-blz-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-bank-wrapper {
+	width: 50%;
+	float: right;
+}
+
+
+#edit-pp-online-mitgliedsantrag-beitrag-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+
+#edit-pp-online-mitgliedsantrag-einzugs-wrapper {
+	float: right;
+	width: 50%;
+}
+
+
+#edit-pp-online-mitgliedsantrag-sender-wrapper {
+	width: 50%;
+	float: left;
+}
+#edit-pp-online-mitgliedsantrag-password-wrapper {
+	width: 50%;
+	float: right;
+}
+#edit-pp-online-mitgliedsantrag-receiver-wrapper {
+	width: 50%;
+}
+#edit-pp-online-mitgliedsantrag-wiki-link-wrapper {
+	width: 50%;
+}
+
+div.edit-pp-online-mitgliedsantrag-expirationdate-wrapper .form-item,
+div.edit-pp-online-mitgliedsantrag-delete-wrapper .form-item {
+	margin: 0;
+}
+
+div.edit-pp-online-mitgliedsantrag-delete-wrapper .form-item a:hover {
+	text-decoration: underline;
+}
+
+fieldset.pp_online_mitgliedsantrag_admin_settings_fieldset select,
+fieldset.pp_online_mitgliedsantrag_admin_settings_fieldset input[type='text'],
+fieldset.pp_online_mitgliedsantrag_admin_settings_fieldset input[type='password'] {
+	width: 95%;
+}
+
+fieldset.pp_online_mitgliedsantrag_admin_settings_county_fieldset select,
+fieldset.pp_online_mitgliedsantrag_admin_settings_county_fieldset input[type='text'] {
+	width: 95%;
+}
+
+fieldset.pp_online_mitgliedsantrag_admin_settings_county_fieldset div.form-item {
+	width: 50%;
+	float: left;
+}
+
+fieldset.pp_online_mitgliedsantrag_admin_pgp_fieldset div.form-item {
+	width: 40%;
+	float: left;
+}
+fieldset.pp_online_mitgliedsantrag_admin_pgp_fieldset div[id^='edit-keyid-'] {
+	width: 20% !important;
+}
+fieldset.pp_online_mitgliedsantrag_admin_pgp_fieldset input.form-text {
+	width: 95%;
+}
+fieldset.pp_online_mitgliedsantrag_admin_pgp_fieldset input.pp_online_mitgliedsantrag_admin_pgp_keyid {
+	width: 95%;
+}

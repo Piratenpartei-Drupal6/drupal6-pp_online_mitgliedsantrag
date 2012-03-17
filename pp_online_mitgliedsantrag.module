@@ -1,0 +1,1168 @@
+<?php
+
+
+/**
+ * Definition of constants
+ */
+define("PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL", 7);
+define("PP_ONLINE_MITGLIEDSANTRAG_CRON_INTERVAL", 60);
+
+
+
+function pp_online_mitgliedsantrag_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+
+  if ($phase == "runtime") {
+    $requirements['pgp'] = array(
+      'title' => $t('PGP'),
+      'value' => "",
+      'severity' => REQUIREMENT_OK,
+    );
+
+    if (!pp_online_mitgliedsantrag_init_gpg($requirements))
+      return $requirements;
+
+    $requirements['pgp']['value'] = t("Crypt_GPG (PEAR) loaded and instantiated");
+  }
+
+  return $requirements;
+}
+
+
+function pp_online_mitgliedsantrag_init_gpg(&$requirements = array()) {
+  try {
+    if (!@include_once 'Crypt/GPG.php') {
+      throw new Exception(t("Could not load Crypt_GPG (PEAR)"), 100);
+    }
+
+    if (!class_exists('Crypt_GPG')) {
+      throw new Exception(t("Could not instantiate Crypt_GPG (PEAR)"), 200);
+    }
+
+    $gpg = pp_online_mitgliedsantrag_get_gpg();
+ } catch (Exception $e) {
+   $requirements['pgp']['value'] = $e->getMessage();
+   $requirements['pgp']['severity'] = REQUIREMENT_ERROR;
+   return false;
+ }
+  return true;
+}
+
+
+function pp_online_mitgliedsantrag_get_gpg($debug = false) {
+  $homedir = drupal_get_path('module', 'pp_online_mitgliedsantrag').'/.gnupg';
+  if (!is_dir($homedir))
+    mkdir($homedir);
+
+  if ($debug)
+    $gpg = new Crypt_GPG(array("homedir" => $homedir, 'debug' => true));
+  else
+    $gpg = new Crypt_GPG(array("homedir" => $homedir));
+
+  return $gpg;
+}
+
+
+function pp_online_mitgliedsantrag_get_key_id($id) {
+	return substr($id, -8);
+}
+
+function pp_online_mitgliedsantrag_get_gpg_keys($gpg) {
+	$data = array("private" => array(), "public" => array(), "expired" => array(), "invalid" => array());
+	$keys = $gpg->getKeys();
+	foreach ($keys as $key) {
+		$t = array();
+
+		$userids = $key->getUserIds();
+		$t["name"] = $userids[0]->getName();
+		$t["email"] = $userids[0]->getEmail();
+
+		$subkeys = $key->getSubKeys();
+		$private = false;
+		$expired = false;
+		$invalid = false;
+		foreach ($subkeys as $subkey) {
+			if ($subkey->hasPrivate())
+				$private = true;
+			if ($subkey->getExpirationDate() < time() && $subkey->getExpirationDate() != 0)
+				$expired = true;
+			if ($subkey->isRevoked())
+				$invalid = true;
+		}
+		$t["keyid"] = pp_online_mitgliedsantrag_get_key_id($subkeys[0]->getId());
+		$t["fingerprint"] = $subkeys[0]->getFingerprint();
+		$t["expirationdate"] = $subkeys[0]->getExpirationDate();
+
+		if ($invalid) {
+			array_push($data["invalid"], $t);
+		} else if ($expired) {
+			array_push($data["expired"], $t);
+		} else {
+			if ($private)
+				array_push($data["private"], $t);
+			else
+				array_push($data["public"], $t);
+		}
+	}
+	#echo "<pre>";
+	#print_r($data);
+
+	foreach($data as $key => $arr) {
+		$tmp = array();
+		foreach($arr as &$ma)
+			$tmp[] = &$ma["email"];
+		array_multisort($tmp, $arr);
+
+		$data[$key] = $arr;
+	}
+
+	#print_r($data);
+	#echo "</pre>";
+
+	return $data;
+}
+
+/**
+ * Implementation of hook_meu()
+ */
+function pp_online_mitgliedsantrag_menu() {
+  $items = array();
+
+  $items['admin/settings/piraten/membership'] = array(
+    'title' => 'Online-Mitgliedsantrag',
+    'description' => 'Einstellungen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pp_online_mitgliedsantrag_admin_settings_form'),
+    'access arguments' => array('administer pp_online_mitgliedsantrag'),
+    'file' => 'pp_online_mitgliedsantrag_settings.admin.inc'
+  );
+
+  $items['admin/settings/piraten/membership/settings'] = array(
+    'title' => 'Einstellungen',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/settings/piraten/membership/pgp'] = array(
+    'title' => 'PGP',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pp_online_mitgliedsantrag_admin_pgp_form'),
+    'access arguments' => array('administer pp_online_mitgliedsantrag'),
+    'file' => 'pp_online_mitgliedsantrag_pgp.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
+
+  return $items;
+}
+
+
+/**
+* Display help and module information.
+* @param path
+*   Which path of the site we're displaying help.
+* @param arg
+*   Array that holds the current path as would be returned from arg() function.
+* @return
+*   help text for the path.
+*/
+function pp_online_mitgliedsantrag_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#pp_online_mitgliedsantrag":
+      $output = '<p>'. t("Zeigt den Block für den Online-Mitgliedsantrag").'</p>';
+      break;
+  }
+  return $output;
+} // function pp_online_mitgliedsantrag_help
+
+
+/**
+ * Implementation of hook_init().
+ *
+ * These includes do not need to be loaded for cached pages.
+ */
+function pp_online_mitgliedsantrag_init() {
+  // Add necessary CSS and JS.
+  // TODO: These shouldn't be loaded on every page, but block caching omits
+  // CSS and JS files that would be otherwise added.
+  drupal_add_css(drupal_get_path('module', 'pp_online_mitgliedsantrag') .'/pp_online_mitgliedsantrag.css');
+  drupal_add_js(drupal_get_path('module', 'pp_online_mitgliedsantrag') .'/pp_online_mitgliedsantrag.js');
+
+  // prevent caching
+  #$GLOBALS['conf']['cache'] = FALSE;
+}
+
+
+/**
+* Valid permissions for this module
+* @return array An array of valid permissions for the pp_online_mitgliedsantrag module
+*/
+
+function pp_online_mitgliedsantrag_perm() {
+  return array('administer pp_online_mitgliedsantrag');
+} // function pp_online_mitgliedsantrag_perm()
+
+
+/**
+* Generate HTML for the pp_online_mitgliedsantrag block
+* @param op the operation from the URL
+* @param delta offset
+* @returns block HTML
+*/
+function pp_online_mitgliedsantrag_block($op = 'list', $delta = '', $edit = array()) {
+	// listing of blocks, such as on the admin/block page
+		#echo $op."\n";
+		#print_r($_GET);
+		switch ($op) {
+			case "list":
+				$block[0]["info"] = "Piraten - ".t('Online-Mitgliedsantrag');
+				$block[0]['cache'] = BLOCK_NO_CACHE;
+				/* set cache -1 in blocks table https://drupal.org/node/791142 */
+				return $block;
+
+			case "view":
+				// SSL check
+					$ssl = variable_get('pp_online_mitgliedsantrag_force_ssl', NULL);
+					#echo $ssl;
+
+					if ($ssl == 1) {
+						global $base_url;
+
+						if (!securepages_is_secure())
+							securepages_goto(TRUE);
+
+						if (securepages_is_secure())
+							$base_url = securepages_baseurl();
+					}
+
+				// set up the block
+					$block['subject'] = t('Online-Mitgliedsantrag');
+					$block['content'] = drupal_get_form('pp_online_mitgliedsantrag_form');
+					return $block;
+		}
+}
+
+
+function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
+	// debug
+		#echo "VALIDATE";
+
+	// check page
+		if ($form_state['storage']['page'] == 1) {
+			// alter
+				$year = $form_state['values']['pp_online_mitgliedsantrag_geburtsdatum']['year'];
+				$month = $form_state['values']['pp_online_mitgliedsantrag_geburtsdatum']['month'];
+				$day = $form_state['values']['pp_online_mitgliedsantrag_geburtsdatum']['day'];
+				/* http://drewd.com/2006/12/06/calculating-age-in-php-update */
+				$alter = floor((time() - strtotime($year."-".$month."-".$day))/(60*60*24*365.24219));
+				if ($alter < 16)
+					form_set_error('pp_online_mitgliedsantrag_geburtsdatum', t('Das Mindestalter für eine Mitgliedschaft liegt bei 16 Jahren.'));
+
+			// email
+				$email_1 = $form_state['values']['pp_online_mitgliedsantrag_email_1'];
+				$email_2 = $form_state['values']['pp_online_mitgliedsantrag_email_2'];
+				if (!valid_email_address($email_1))
+					form_set_error('pp_online_mitgliedsantrag_email_1', t('Das Feld E-Mail-Adresse muss eine korrekte Adresse enthalten.'));
+				else if (!valid_email_address($email_2))
+					form_set_error('pp_online_mitgliedsantrag_email_2', t('Das Feld E-Mail-Adresse Wiederholung muss eine korrekte Adresse enthalten.'));
+				else if ($email_1 != $email_2)
+					form_set_error('pp_online_mitgliedsantrag_email_1', t('Die E-Mail-Adressen müssen gleich sein.'));
+
+			// beitrag
+				if ($form_state['values']["pp_online_mitgliedsantrag_beitragsminderung"] != 1) {
+					$beitrag = $form_state['values']['pp_online_mitgliedsantrag_beitrag'];
+					if (!ctype_digit($beitrag))
+						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Das Feld Mitgliedsbeitrag muss eine natürliche Zahl enthalten.'));
+					else if (intval($beitrag) < 36)
+						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens 36 € im Jahr.'));
+				}
+
+
+			// kontoinhaber
+				if ($form_state['values']["pp_online_mitgliedsantrag_einzug"] == 1) {
+					if (empty($form_state['values']['pp_online_mitgliedsantrag_kontoinhaber']))
+						form_set_error('pp_online_mitgliedsantrag_kontoinhaber', t('Das Feld Kontoinhaber ist erforderlich.'));
+				}
+
+			// kontonummer
+				if ($form_state['values']["pp_online_mitgliedsantrag_einzug"] == 1) {
+					$kontonr = $form_state['values']['pp_online_mitgliedsantrag_kontonummer'];
+					if (!ctype_digit($kontonr))
+						form_set_error('pp_online_mitgliedsantrag_kontonummer', t('Das Feld Kontonummer muss eine natürliche Zahl enthalten.'));
+				}
+
+			// bankleitzahl
+				if ($form_state['values']["pp_online_mitgliedsantrag_einzug"] == 1) {
+					$blz = $form_state['values']['pp_online_mitgliedsantrag_blz'];
+					if (!ctype_digit($blz))
+						form_set_error('pp_online_mitgliedsantrag_blz', t('Das Feld Bankleitzahl muss eine natürliche Zahl enthalten.'));
+				}
+
+			// kreditinstitut
+				if ($form_state['values']["pp_online_mitgliedsantrag_einzug"] == 1) {
+					if (empty($form_state['values']['pp_online_mitgliedsantrag_bank']))
+						form_set_error('pp_online_mitgliedsantrag_bank', t('Das Feld Kreditinstitut ist erforderlich.'));
+				}
+
+
+			// jupi
+				if ($alter > 27) {
+					if ($form_state['values']["pp_online_mitgliedsantrag_jupi"] == 1 || $form_state['values']["pp_online_mitgliedsantrag_jupi_satzung"] == 1) {
+						form_set_error('pp_online_mitgliedsantrag_jupi', t('Das maximale Alter für die Jungen Piraten liegt bei 27 Jahren.'));
+					}
+				} else {
+					if ($form_state['values']["pp_online_mitgliedsantrag_jupi"] == 1) {
+						if ($form_state['values']["pp_online_mitgliedsantrag_jupi_satzung"] != 1) {
+							form_set_error('pp_online_mitgliedsantrag_jupi_satzung', t('Die Satzung der Jungen Piraten muss anerkannt werden.'));
+						}
+					}
+					if ($form_state['values']["pp_online_mitgliedsantrag_jupi"] != 1) {
+						if ($form_state['values']["pp_online_mitgliedsantrag_jupi_satzung"] == 1) {
+							form_set_error('pp_online_mitgliedsantrag_jupi', t('Die Mitgliedschaft bei den Jungen Piraten muss gewollt sein.'));
+						}
+					}
+				}
+
+			// satzung
+				if ($form_state['values']["pp_online_mitgliedsantrag_satzung"] != 1) {
+					form_set_error('pp_online_mitgliedsantrag_satzung', t('Die Satzung der Piratenpartei Hessen muss anerkannt werden.'));
+				}
+
+
+		} else {
+			// code
+				$code = $form_state['values']['pp_online_mitgliedsantrag_code'];
+				$code = trim($code);
+				if (!ctype_digit($code))
+					form_set_error('pp_online_mitgliedsantrag_code', t('Das Feld Bestatigungs-Code muss eine natürliche Zahl enthalten.'));
+
+				if ($form_state['storage']['code_get']) {
+					// check db
+						$sql = "SELECT COUNT(*) AS `count` FROM {pp_online_mitgliedsantrag} WHERE `code` = %d";
+						$results = db_query($sql, $code);
+						$data = db_fetch_array($results);
+						#print_r($data);
+						if ($data["count"] != 1)
+							form_set_error('pp_online_mitgliedsantrag_code', t('Der Bestatigungs-Code ist falsch.'));
+				} else if ($code != $form_state['storage']['code']) {
+					// check storage
+						form_set_error('pp_online_mitgliedsantrag_code', t('Der Bestatigungs-Code ist falsch.'));
+				}
+		}
+}
+
+
+function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
+	// check page
+		if ($form_state['storage']['page'] == 1) {
+
+			// generate code
+				$code = date("md").rand(1000, 9999);
+
+			// load civicrm import
+				#$csv = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/civicrm/import.csv');
+
+			// load sage import
+				$csv = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/sage/import.csv');
+
+			// load vorstand email
+				$email = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/vorstand.txt');
+
+			// load confirmation email
+				$confirmation = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/bestaetigen.txt');
+
+			// replacements form fields
+				foreach($form_state['values'] as $key => $value) {
+					if (strpos($key, "pp_online_mitgliedsantrag_") !== false) {
+						$rkey = str_replace("pp_online_mitgliedsantrag_", "", $key);
+
+						switch ($rkey) {
+							case "geburtsdatum":
+								$rvalue = $value["year"]."-".str_pad($value["month"], 2, 0, STR_PAD_LEFT)."-".str_pad($value["day"], 2, 0, STR_PAD_LEFT);
+								break;
+
+							case "nationalitaet":
+								$value = strtolower($value);
+								if (strpos($value, "deutsch") !== false)
+									$rvalue = "DE";
+								else
+									$rvalue = $value;
+								break;
+
+							case "email_1":
+								$rkey = "email";
+								$rvalue = $value;
+								break;
+
+							case "beitragsminderung":
+								if ($value == 1)
+									$rvalue = -1;
+								else
+									$rvalue = 0;
+								break;
+
+							default:
+								$rvalue = $value;
+								break;
+						}
+
+						switch($rkey) {
+							case "kontoinhaber":
+							case "blz":
+							case "kontonummer":
+							case "bank":
+								break;
+
+							default:
+								$csv = str_replace("%%".$rkey."%%", $rvalue, $csv);
+						}
+
+						switch ($rkey) {
+							case "einzug":
+								if ($value == 1)
+									$rvalue = t("Einzugsermächtigung");
+								else
+									$rvalue = t("Selbstzahler");
+								break;
+						}
+
+						$email = str_replace("%%".$rkey."%%", $rvalue, $email);
+						$confirmation = str_replace("%%".$rkey."%%", $rvalue, $confirmation);
+					}
+				}
+
+			// bank data
+				$bankverbindung = t("keine");
+				if ($form_state['values']['pp_online_mitgliedsantrag_einzug'] == 1) {
+					$bankverbindung = $form_state['values']['pp_online_mitgliedsantrag_kontoinhaber']."\n".
+										$form_state['values']['pp_online_mitgliedsantrag_kontonummer']."\n".
+										$form_state['values']['pp_online_mitgliedsantrag_blz']." ".$form_state['values']['pp_online_mitgliedsantrag_bank']."\n";
+				}
+				$email = str_replace("%%bankverbindung%%", $bankverbindung, $email);
+
+			// get state, district and county
+				$state = variable_get('pp_online_mitgliedsantrag_state', NULL);
+				$zipcode = $form_state['values']['pp_online_mitgliedsantrag_plz'];
+				$city = $form_state['values']['pp_online_mitgliedsantrag_ort'];
+				$geodata = pp_opengeodb_api_getEntryByZipcodeAndCity($zipcode, $city);
+
+				$csv = str_replace("%%lv_short%%", pp_opengeodb_api_getStateShortcut($state), $csv);
+
+				$csv = str_replace("%%bundesland%%", $geodata["bundesland"], $csv);
+				$csv = str_replace("%%bundesland_short%%", pp_opengeodb_api_getStateShortcut($geodata["bundesland"]), $csv);
+				$email = str_replace("%%bundesland%%", $geodata["bundesland"], $email);
+				$confirmation = str_replace("%%bundesland%%", $geodata["bundesland"], $confirmation);
+
+				$csv = str_replace("%%bezirk%%", $geodata["bezirk"], $csv);
+				$email = str_replace("%%bezirk%%", $geodata["bezirk"], $email);
+				$confirmation = str_replace("%%bezirk%%", $geodata["bezirk"], $confirmation);
+
+				$csv = str_replace("%%landkreis%%", $geodata["landkreis"], $csv);
+				$email = str_replace("%%landkreis%%", $geodata["landkreis"], $email);
+				$confirmation = str_replace("%%landkreis%%", $geodata["landkreis"], $confirmation);
+
+			// check KV
+				$kv_key = variable_get('pp_online_mitgliedsantrag_receiver_'.strtolower($geodata["bundesland"]).'_'.strtolower($geodata["landkreis"]), NULL);
+
+			// replacements additonal info
+				$csv = str_replace("%%code%%", $code, $csv);
+				$email = str_replace("%%code%%", $code, $email);
+				$confirmation = str_replace("%%code%%", $code, $confirmation);
+
+				$csv = str_replace("%%datum%%", date("Y-m-d"), $csv);
+				$email = str_replace("%%datum%%", date("d.m.Y"), $email);
+				$confirmation = str_replace("%%datum%%", date("d.m.Y"), $confirmation);
+
+				$endofyear = strtotime(date("Y")."-12-31");
+				$csv = str_replace("%%jahresende%%", date("Y-m-d", $endofyear), $csv);
+				$email = str_replace("%%jahresende%%", date("d.m.Y", $endofyear), $email);
+				$confirmation = str_replace("%%jahresende%%", date("d.m.Y", $endofyear), $confirmation);
+
+			// replacements for jupi or few money or free message
+				$jupi = $form_state['values']['pp_online_mitgliedsantrag_jupi'];
+				$fewmoney = $form_state['values']['pp_online_mitgliedsantrag_beitragsminderung'];
+
+				$special = "";
+				if ($jupi == 1)
+					$special .= "- ".t("Junger Pirat werden")."\n";
+				if ($fewmoney == 1)
+					$special .= "- ".t("Beitragsminderung")."\n";
+				$special = trim($special);
+				if (empty($special))
+					$special = t("keine");
+				$email = str_replace("%%besonderes%%", $special, $email);
+
+				$comment = $form_state['values']['pp_online_mitgliedsantrag_comment'];
+				$comment = trim($comment);
+				$msg = t("keine");
+				if (!empty($comment))
+					$msg = $comment;
+				$email = str_replace("%%mitteilung%%", $msg, $email);
+
+			// replacments of link and duration
+				$path = isset($_GET['q']) ? $_GET['q'] : '<front>';
+				$link = url($path, array('absolute' => TRUE));
+				$link .= "?code=".$code;
+				$confirmation = str_replace("%%link%%", $link, $confirmation);
+
+				$tage = variable_get('pp_online_mitgliedsantrag_delete', PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL);
+				$confirmation = str_replace("%%tage%%", $tage, $confirmation);
+
+			// set empty fields
+				$empty = "";
+				preg_match_all("/\%\%([a-z0-9]+)\%\%/", $csv, $regs);
+				#print_r($regs);
+				foreach($regs[1] as $reg) {
+					$csv = str_replace("%%".$reg."%%", $empty, $csv);
+				}
+				#print_r($csv);
+
+				preg_match_all("/\%\%([a-z0-9]+)\%\%/", $email, $regs);
+				#print_r($regs);
+				foreach($regs[1] as $reg) {
+					$email = str_replace("%%".$reg."%%", $empty, $email);
+				}
+				#print_r($email);
+
+				preg_match_all("/\%\%([a-z0-9]+)\%\%/", $confirmation, $regs);
+				#print_r($regs);
+				foreach($regs[1] as $reg) {
+					$confirmation = str_replace("%%".$reg."%%", $empty, $confirmation);
+				}
+				#print_r($confirmation);
+
+			// trim
+				$csv = trim($csv);
+				$email = trim($email);
+				$confirmation = trim($confirmation);
+
+			// gpg
+				if (!pp_online_mitgliedsantrag_init_gpg())
+					return;
+				$gpg = pp_online_mitgliedsantrag_get_gpg();
+
+			// keys
+				$ekey = variable_get('pp_online_mitgliedsantrag_receiver', NULL);
+				#echo $ekey."\n";
+
+				$skey = variable_get('pp_online_mitgliedsantrag_sender', NULL);
+				$pass = variable_get('pp_online_mitgliedsantrag_password', NULL);
+				#echo $skey."\n";
+				#echo $pass."\n";
+				#die();
+
+			// get receiver and sender
+				$receiver = $gpg->getKeys($ekey);
+				$receiver = $receiver[0]->getUserIds();
+				#print_r($receiver);
+				$to = $receiver[0]->getEmail();
+
+				$sender = $gpg->getKeys($skey);
+				$sender = $sender[0]->getUserIds();
+				#print_r($sender);
+				$from_name = $sender[0]->getName();
+				$from = $sender[0]->getEmail();
+
+			// generate boundy
+				$uniq_id = md5(uniqid(time()));
+				$boundary = 'oma_'.$uniq_id;
+
+			// load email skel
+				$body = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/prepare_mime_body.txt');
+
+			// prepare email skel
+				$body = str_replace("%%boundary%%", $boundary, $body);
+				$body = str_replace("%%email%%", $email, $body);
+				$body = str_replace("%%filename%%", "import_".$code.".csv", $body);
+				$body = str_replace("%%csv%%", $csv, $body);
+
+			// create email
+				$email = $body;
+				#echo "<pre>";
+				#print_r($email);
+				#die("exit");
+
+			// encrypt and sign
+/*
+				echo "---------------------------------------------------------------------------------------------------------<br>\n";
+				echo $ekey."<br>\n";
+				echo $kv_key."<br>\n";
+				echo $pass."<br>\n";
+				echo "---------------------------------------------------------------------------------------------------------<br>\n";
+				#die("stop");
+*/
+				$gpg->addEncryptKey($ekey);
+				if ($kv_key) {
+					$gpg->addEncryptKey($kv_key);
+				}
+				$gpg->addSignKey($skey, $pass);
+
+				$email = $gpg->encryptAndSign($email);
+				#print_r($email);
+				#die("exit");
+
+			// kv check
+				$org = "Landesverband";
+				$to2 = "";
+				if ($kv_key) {
+					$org = $geodata["landkreis"];
+
+					$receiver2 = $gpg->getKeys($kv_key);
+					$receiver2 = $receiver2[0]->getUserIds();
+					#print_r($receiver2);
+					$to2 = $receiver2[0]->getEmail();
+				}
+
+			// store to db
+				$obj = new stdClass();
+				$obj->date = date("Y-m-d H:i:s");
+				$obj->code = $code;
+				$obj->receiver = $to;
+				$obj->receiver2 = $to2;
+				$obj->email = $email;
+				$obj->org = $org;
+				drupal_write_record('pp_online_mitgliedsantrag', $obj);
+
+			// send email
+				module_load_include('inc', 'phpmailer', 'includes/phpmailer.class');
+				$mail = new DrupalPHPMailer();
+				$mail->IsMail();
+
+				try {
+					$mail->FromName = $from_name;
+					$mail->From = $from;
+					$mail->AddAddress($form_state['values']['pp_online_mitgliedsantrag_email_1'], $form_state['values']['pp_online_mitgliedsantrag_vorname']." ".$form_state['values']['pp_online_mitgliedsantrag_nachname']);
+					$mail->Subject = t("Online-Mitgliedsantrag")." #".$code;
+					$mail->Body = $confirmation;
+					$result = $mail->Send();
+		 		} catch (phpmailerException $e) {
+					drupal_set_message(t('Das Versenden der E-Mail ist fehlgeschlagen:<br />@error', array('@error' => $e->getMessage())), 'error');
+					#form_set_error('form', t('Das Versenden der E-Mail ist fehlgeschlagen:<br />@error', array('@error' => $e->getMessage())), 'error');
+					#$form_state['redirect'] = FALSE;
+					watchdog('phpmailer', $e->getMessage(), NULL, WATCHDOG_ERROR);
+					return;
+				}
+
+			// switch to second page
+				#$form_state['rebuild'] = TRUE;
+				$form_state['storage']['page']++;
+				$form_state['storage']['code'] = $code;
+
+		} else {
+			// load database record
+				$code = $form_state['values']['pp_online_mitgliedsantrag_code'];
+				$sql = "SELECT * FROM {pp_online_mitgliedsantrag} WHERE `code` = %d";
+				$results = db_query($sql, $code);
+				$data = db_fetch_array($results);
+				#print_r($data);
+
+			// gpg
+				if (!pp_online_mitgliedsantrag_init_gpg())
+					return;
+				$gpg = pp_online_mitgliedsantrag_get_gpg();
+
+			// keys
+				$skey = variable_get('pp_online_mitgliedsantrag_sender', NULL);
+				$pass = variable_get('pp_online_mitgliedsantrag_password', NULL);
+
+			// get receiver and sender
+				$sender = $gpg->getKeys($skey);
+				$sender = $sender[0]->getUserIds();
+				#print_r($sender);
+				$from_name = $sender[0]->getName();
+				$from = $sender[0]->getEmail();
+
+			// generate boundy
+				$uniq_id = md5(uniqid(time()));
+				$boundary = 'oma_'.$uniq_id;
+
+			// load email skel
+				$header = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/pgp_mime_header.txt');
+				$body = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/pgp_mime_body.txt');
+
+			// prepare email skel
+				$header = str_replace("%%boundary%%", $boundary, $header);
+				$body = str_replace("%%body%%", $data["email"], $body);
+				$body = str_replace("%%boundary%%", $boundary, $body);
+
+			// send email
+				module_load_include('inc', 'phpmailer', 'includes/phpmailer.class');
+				$mail = new DrupalPHPMailer();
+				$mail->IsMail();
+
+				try {
+					$mail->FromName = $from_name;
+					$mail->From = $from;
+					if (!empty($data["receiver2"])) {
+						$mail->AddAddress($data["receiver2"]);
+						$mail->AddCC($data["receiver"]);
+					} else {
+						$mail->AddAddress($data["receiver"]);
+					}
+					$mail->Subject = t("Online-Mitgliedsantrag")." #".$code." (".$data["org"].")";
+					$mail->Body = $body;
+					$mail->AddCustomHeader($header);
+					#$mail->AddStringAttachment($data["csv"], "import_".$code.".csv.asc", "binary", "application/pgp-encrypted");
+					$result = $mail->Send();
+		 		} catch (phpmailerException $e) {
+					drupal_set_message(t('Das Versenden der E-Mail ist fehlgeschlagen:<br />@error', array('@error' => $e->getMessage())), 'error');
+					#form_set_error('form', t('Das Versenden der E-Mail ist fehlgeschlagen:<br />@error', array('@error' => $e->getMessage())), 'error');
+					#$form_state['redirect'] = FALSE;
+					watchdog('phpmailer', $e->getMessage(), NULL, WATCHDOG_ERROR);
+					return;
+				}
+
+			// delete record
+				$sql = "DELETE FROM {pp_online_mitgliedsantrag} WHERE `id` = %d";
+				$results = db_query($sql, $data["id"]);
+
+			// switch to third page
+				#$form_state['rebuild'] = TRUE;
+				$form_state['storage']['page']++;
+		}
+
+	// return
+		return;
+}
+
+
+function pp_online_mitgliedsantrag_form_alter(&$form, &$form_state, $form_id) {
+	// debug
+		#echo "ALTER";
+/*
+		echo "<pre>";
+		print_r($form);
+		print_r($form_state);
+		echo "</pre>";
+/**/
+
+	// check for ort (ajax values)
+		if ($form_state["post"]["pp_online_mitgliedsantrag_ort"] != "") {
+			if ($form_state["post"]["pp_online_mitgliedsantrag_plz"] != "") {
+				$form["personal_data"]["pp_online_mitgliedsantrag_ort"]["#options"] = pp_opengeodb_api_getCitiesByZipcodeOptions($form_state["post"]["pp_online_mitgliedsantrag_plz"]);
+				$form["personal_data"]["pp_online_mitgliedsantrag_ort"]["#default_value"] = $form_state["post"]["pp_online_mitgliedsantrag_ort"];
+			}
+
+			if (pp_opengeodb_check_getCitiesByZipcode($form_state["post"]["pp_online_mitgliedsantrag_ort"])) {
+				$form["personal_data"]["pp_online_mitgliedsantrag_ort"]["#validated"] = true;
+			}
+		}
+
+	// check for einzug
+		if ($form_state["post"]["pp_online_mitgliedsantrag_einzug"] == 1) {
+			$form["pay_data"]["pp_online_mitgliedsantrag_kontoinhaber"]["#required"] = true;
+			$form["pay_data"]["pp_online_mitgliedsantrag_kontonummer"]["#required"] = true;
+			$form["pay_data"]["pp_online_mitgliedsantrag_blz"]["#required"] = true;
+			$form["pay_data"]["pp_online_mitgliedsantrag_bank"]["#required"] = true;
+		}
+
+	// check for minderung
+		if ($form_state["post"]["pp_online_mitgliedsantrag_beitragsminderung"] == 1) {
+			$form["pay_data"]["pp_online_mitgliedsantrag_beitrag"]["#required"] = false;
+		}
+}
+
+
+function pp_online_mitgliedsantrag_form(&$form_state) {
+	// form
+		$form = array();
+
+	// check get for code
+		#print_r($_GET);
+		$code_get = "";
+		$form_state['storage']['code_get'] = false;
+		if (isset($_GET["code"])) {
+			$_GET["code"] = trim($_GET["code"]);
+			if (!empty($_GET["code"])) {
+				$code_get = $_GET["code"];
+				$form_state['storage']['code_get'] = true;
+			}
+		}
+
+	// define page
+		$page = 1;
+		if (isset($form_state['storage']['page'])) {
+			$page = $form_state['storage']['page'];
+		} else if (!empty($code_get)) {
+			$page = 2;
+			$form_state['storage']['page'] = $page;
+		} else {
+			$form_state['storage']['page'] = $page;
+		}
+		#echo $page."\n";
+		#echo $form_state['storage']['page']."\n";
+
+	// diffrent pages
+		switch($page) {
+			case 1:
+				/*
+				echo "<pre>";
+				print_r($form_state);
+				echo "</pre>";
+				*/
+
+				$form['intro'] = array (
+					'#type' => 'item',
+					'#value' => t('Noch schneller geht es natürlich online. Wenn Du dich mit unserer <a href="http://www.piratenpartei-hessen.de/landesverband/satzung">Satzung</a> einverstanden erklärst, dann fülle einfach das unten stehende Formular aus und erhalte in wenigen Tagen Nachricht mit Deiner Mitgliedsnummer von uns!<br><br>Eine genaue Verfahrensbeschreibung des Online-Mitgliedantrages findest Du im <a href="@wiki">Wiki</a>.', array("@wiki" => variable_get('pp_online_mitgliedsantrag_wiki_link', NULL))),
+				);
+
+				$form['personal_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Persönliche Daten'),
+					'#description' => t('Bitte teile uns Deinen Erstwohnsitz mit. Es ist ein Wohnsitz in Deutschland notwendig.'),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_vorname'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Vorname'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_nachname'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Nachname'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_adresszusatz'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Adresszusatz'),
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_strasse'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Straße'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_hausnummer'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Hausnummer'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_plz'] = array(
+					'#type' => 'textfield',
+					'#title' => t('PLZ'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_ort'] = array(
+					'#type' => 'select',
+					'#title' => t('Wohnort'),
+					'#required' => true,
+					'#options' => array(
+						'' => t('Wird aus PLZ ermittelt'),
+					),
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$minage = strtotime("-16 years");
+				$form['personal_data']['pp_online_mitgliedsantrag_geburtsdatum'] = array(
+					'#type' => 'date',
+					'#title' => t('Geburtsdatum'),
+					'#description' => t('Das Mindestalter für eine Mitgliedschaft liegt bei 16 Jahren.'),
+					'#required' => true,
+					'#default_value' => array(
+						'year' => date("Y", $minage),
+						'month' => date("m", $minage),
+						'day' => date("d", $minage)
+					),
+				);
+
+				$form['personal_data']['pp_online_mitgliedsantrag_nationalitaet'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Nationalität'),
+					'#description' => t('Eine deutsche Staatsangehörigkeit ist nicht notwendig.'),
+					'#default_value' => "deutsch",
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_30',
+					),
+				);
+
+
+
+				$form['contact_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Kontaktdaten'),
+					'#description' => t('Deine E-Mail-Adresse wird für diesen Online-Mitgliedsantrag verwendet, sowie für wichtige Einladungen zu Mitgliedsversammlungen oder virtuellen Meinungsbildern beispielsweise.'),
+				);
+
+				$form['contact_data']['pp_online_mitgliedsantrag_email_1'] = array(
+					'#type' => 'textfield',
+					'#title' => t('E-Mail-Adresse'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['contact_data']['pp_online_mitgliedsantrag_email_2'] = array(
+					'#type' => 'textfield',
+					'#title' => t('E-Mail-Adresse Wiederholung'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+				$form['contact_data']['pp_online_mitgliedsantrag_telefon'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Telefon'),
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+
+
+
+				$form['pay_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Zahlungsdaten'),
+					'#description' => t('Bitte teile uns Deinen Mitgliedsbeitrag mit und ob Du uns eine Einzugsermächtigung erteilen möchtest.'),
+				);
+
+				$form['pay_data']['pp_online_mitgliedsantrag_beitrag'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Mitgliedsbeitrag'),
+					'#description' => t('Der Mitgliedsbeitrag beträgt 36 € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.'),
+					'#required' => true,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_30',
+					),
+					'#field_suffix' => "€",
+				);
+
+				$form['pay_data']['pp_online_mitgliedsantrag_einzug_title'] = array(
+					'#type' => 'item',
+					'#title' => t('Einzugsermächtigung'),
+					'#prefix' => '<div id="edit-pp-online-mitgliedsantrag-einzugs-wrapper">',
+				);
+
+				$form['pay_data']['pp_online_mitgliedsantrag_einzug'] = array(
+					'#type' => 'checkbox',
+					'#title' => t('Ich ermächtige die Piratenpartei Deutschland widerruflich meinen jährlichen Mitgliedsbeitrag ab dem nächsten Kalenderjahr per Lastschrift einzuziehen.'),
+					'#suffix' => '</div>',
+				);
+
+
+
+				$form['bank_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Bankdaten'),
+					'#description' => t('Bitte teile uns Deine Bankverbindung für die Einzugsermächtigung mit.'),
+					'#attributes' => array('style' => 'display: none'),
+					'#prefix' => '<div id="pp_online_bank_data">',
+					'#suffix' => '</div>',
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					unset($form['bank_data']['#attributes']);
+
+				$form['bank_data']['pp_online_mitgliedsantrag_kontoinhaber'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Kontoinhaber'),
+					'#required' => false,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					$form['bank_data']['pp_online_mitgliedsantrag_kontoinhaber']['#required'] = true;
+
+				$form['bank_data']['pp_online_mitgliedsantrag_kontonummer'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Kontonummer'),
+					'#required' => false,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					$form['bank_data']['pp_online_mitgliedsantrag_kontonummer']['#required'] = true;
+
+				$form['bank_data']['pp_online_mitgliedsantrag_blz'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Bankleitzahl'),
+					'#required' => false,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					$form['bank_data']['pp_online_mitgliedsantrag_blz']['#required'] = true;
+
+				$form['bank_data']['pp_online_mitgliedsantrag_bank'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Kreditinstitut'),
+					'#required' => false,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					$form['bank_data']['pp_online_mitgliedsantrag_bank']['#required'] = true;
+
+
+
+				$form['additional_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Optionales'),
+					'#collapsible' => true,
+					'#collapsed' => true,
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_jupi_title'] = array(
+					'#type' => 'item',
+					'#title' => t('Junge Piraten'),
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_jupi'] = array(
+					'#type' => 'checkbox',
+					'#title' => t('Ich bin maximal 27 Jahre alt und möchte zusätzlich kostenlos Mitglied unserer Jugendorganisation <a href="http://www.junge-piraten.de">Junge Piraten</a> werden.'),
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_jupi_satzung'] = array(
+					'#type' => 'checkbox',
+					'#title' => t('Die <a href="http://wiki.junge-piraten.de/wiki/Satzung">Satzung</a> der Jungen Piraten erkenne ich an. Der Antrag gilt auch für alle bestehenden und zu gründenden Untergliederungen der Jungen Piraten an meinem Wohnsitz. Der Verein darf über meine E-Mail-Adresse mit mir Kontakt aufnehmen. Ich erteile mit diesem Antrag die notwendige schriftliche Einwilligung, dass die in diesem Formular gemachten Angaben an die Jungen Piraten übermittelt und ausschließlich für interne Zwecke des Vereins verarbeitet werden dürfen.'),
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_beitragsminderung_title'] = array(
+					'#type' => 'item',
+					'#title' => t('Beitragsminderung'),
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_beitragsminderung'] = array(
+					'#type' => 'checkbox',
+					'#title' => t('Leider kann ich den Regelbeitrag von 3 € im Monat nicht aufbringen und bitte um Beitragsminderung. Mein Antrag zur Mitgliedschaft ruht solange bis die Beitragsminderung bewilligt wurde. Bitte senden Sie mir alle notwendigen Informationen an meine angegebene E-Mail Adresse.'),
+				);
+
+				$form['additional_data']['pp_online_mitgliedsantrag_comment'] = array(
+					'#type' => 'textarea',
+					'#title' => t('Mitteilung'),
+				);
+
+
+				$form['generel_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Generelles'),
+				);
+
+				$form['generel_data']['pp_online_mitgliedsantrag_satzung'] = array(
+					'#type' => 'checkbox',
+					'#title' => t('Die <a href="/landesverband/satzung">Satzung</a> der Piratenpartei Hessen erkenne ich an. Der Antrag gilt auch für alle bestehenden und zu gründenden Untergliederungen der Piratenpartei Hessen an meinem Wohnsitz. Die Partei darf über meine E-Mail-Adresse mit mir Kontakt aufnehmen. Ich erteile mit diesem Antrag die notwendige schriftliche Einwilligung, dass die in diesem Formular gemachten Angaben an die Piratenpartei Hessen übermittelt und ausschließlich für interne Zwecke der Partei verarbeitet werden dürfen.'),
+				);
+
+				$form['generel_data']['pp_online_mitgliedsantrag_datenschutz'] = array(
+					'#type' => 'item',
+					'#title' => t('Datenschutzerklärung'),
+					'#value' => t('Die Piratenpartei Deutschland verarbeitet die in diesem Aufnahmeantrag enthaltenen Angaben zur Person für ausschließlich interne Zwecke der Partei. Nach <a href="http://dejure.org/gesetze/BDSG/4.html">§ 4 Bundesdatenschutzgesetz</a> bedarf dies einer vorherigen schriftlichen Einwilligung, die gleichzeitig mit dem Antrag auf Mitgliedschaft in der Piratenpartei erteilt wird. Es wird zugesichert, dass die Daten unter strikter Beachtung der Bestimmungen des Bundesdatenschutzgesetzes verarbeitet werden.'),
+				);
+
+				$form['generel_data']['pp_online_mitgliedsantrag_zahlung'] = array(
+					'#type' => 'item',
+					'#title' => t('Unterschrift'),
+					'#value' => t('Meine Unterschrift leiste ich durch Zahlung des Erstbeitrags, womit ich den Mitgliedsantrag vollende.<br>Die Zahlung leiste ich erst nach Aufforderung.'),
+				);
+
+				$form['generel_data']['captcha'] = array(
+					'#type' => 'captcha',
+					'#captcha_type' => 'captcha/Math',
+				);
+
+
+				$form['generel_data']['submit'] = array(
+					'#type' => 'submit',
+					'#value' => t('Mitglied werden'),
+				);
+
+				break;
+
+			case 2:
+				$form['confirm_data'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Bestätigen'),
+					'#description' => t('Es wird Dir ein Code per E-Mail zu gesendet. Diesen musst Du hier eingeben.<br>Nach dem Bestätigen werden Deine Daten verschlüsselt an den zuständigen Vorstand zur Bearbeitung weitergeleitet.'),
+				);
+
+				$form['confirm_data']['pp_online_mitgliedsantrag_code'] = array(
+					'#type' => 'textfield',
+					'#title' => t('Bestätigungs-Code'),
+					'#required' => true,
+					'#default_value' => $code_get,
+				);
+
+				$form['confirm_data']['submit'] = array(
+					'#type' => 'submit',
+					'#value' => t('Bestätigen'),
+				);
+
+				break;
+
+			case 3:
+				$form['thankyou'] = array(
+					'#type' => 'fieldset',
+					'#title' => t('Vielen Dank'),
+					'#description' => t('Du erhälst alsbald Nachricht vom zuständigen Vorstand, um Deine Unterschrift mittels Erst-Überweisung zu leisten und Pirat zu werden.'),
+				);
+		}
+
+	// return
+		return $form;
+}
+
+
+/**
+*
+*/
+function pp_online_mitgliedsantrag_cron() {
+	// check cron interval
+		$last_run = variable_get('pp_online_mitgliedsantrag_cron_last_run', NULL);
+
+		if (empty($last_run)) {
+			_pp_online_mitgliedsantrag_cron();
+		} else if (time() > $last_run + PP_ONLINE_MITGLIEDSANTRAG_CRON_INTERVAL) {
+			_pp_online_mitgliedsantrag_cron();
+		}
+}
+
+function _pp_online_mitgliedsantrag_cron() {
+	// interval
+		$days = variable_get('pp_online_mitgliedsantrag_delete', PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL);
+		$interval = date("Y-m-d H:i:s", strtotime("-".$days." days"));
+
+	// delete
+		$sql = "SELECT COUNT(*) AS `count` FROM {pp_online_mitgliedsantrag} WHERE `date` < '%s'";
+		$results = db_query($sql, $interval);
+		$stats = db_fetch_array($results);
+
+		$sql = "DELETE FROM {pp_online_mitgliedsantrag} WHERE `date` < '%s'";
+		$results = db_query($sql, $interval);
+		watchdog('pp_online_mitgliedsantrag', t("Cron run: ".$stats["count"]." deleted"));
+
+	// update cron interval
+		variable_set('pp_online_mitgliedsantrag_cron_last_run', time());
+}
+
+?>

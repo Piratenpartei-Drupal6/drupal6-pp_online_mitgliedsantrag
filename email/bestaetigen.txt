@@ -1,0 +1,13 @@
+Ahoi %%vorname%%,
+du hast soeben einen Online-Mitgliedsantrag ausgefüllt.
+Damit deine Daten an den zuständigen Vorstand weitergeleitet werden können,
+muss du noch folgenden Code in das Formular eingeben:
+%%code%%
+
+Solltest du das Browser-Fenster schon geschlossen haben, so kannst du
+folgenden Link anklicken:
+%%link%%
+(Dieser Link ist %%tage%% Tage lang gültig)
+
+Grüsse
+Deine hessischen Piraten

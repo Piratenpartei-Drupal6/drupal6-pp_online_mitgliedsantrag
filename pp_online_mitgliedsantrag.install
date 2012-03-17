@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * Implementation of hook_schema().
+ */
+function pp_online_mitgliedsantrag_schema() {
+  $schema['pp_online_mitgliedsantrag'] = array(
+    'description' => t('Stores encrypted membership form data.'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('Unique identifier for each {pp_online_mitgliedsantrag} data record.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'date' => array(
+        'description' => t('Date and time of the inserted data record.'),
+        'type' => 'datetime',
+        'not null' => TRUE,
+      ),
+      'code' => array(
+        'description' => t('Unique identifier for email confirmation and banktransfer.'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'receiver' => array(
+        'description' => t('Email address for sending the encrypted mail.'),
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => TRUE,
+      ),
+      'receiver2' => array(
+        'description' => t('CC Email address for sending the encrypted mail.'),
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => TRUE,
+      ),
+        'email' => array(
+        'description' => t('Encrypted email body.'),
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'org' => array(
+        'description' => t('Name of the organisation unit.'),
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'code' => array('code'),
+      'date' => array('date'),
+     ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function pp_online_mitgliedsantrag_install() {
+  // Create tables.
+  drupal_install_schema('pp_online_mitgliedsantrag');
+
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function pp_online_mitgliedsantrag_uninstall() {
+  // Remove tables.
+  drupal_uninstall_schema('pp_online_mitgliedsantrag');
+}

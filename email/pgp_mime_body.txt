@@ -1,0 +1,15 @@
+This is an OpenPGP/MIME encrypted message (RFC 2440 and 3156)
+----%%boundary%%
+Content-Type: application/pgp-encrypted
+Content-Description: PGP/MIME version identification
+
+Version: 1
+
+----%%boundary%%
+Content-Type: application/octet-stream; name="encrypted.asc"
+Content-Description: OpenPGP encrypted message
+Content-Disposition: inline; filename="encrypted.asc"
+
+%%body%%
+
+----%%boundary%%--

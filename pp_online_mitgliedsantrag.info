@@ -1,0 +1,12 @@
+; $Id$
+package = Piratenpartei
+name = Piratenpartei Online-Mitgliedsantrag
+description = Zeigt den Block mit dem Online-Mitgliedsantrag an.
+dependencies[] = pp_admin_menu
+dependencies[] = pp_opengeodb
+dependencies[] = pp_ssl
+dependencies[] = captcha
+dependencies[] = phpmailer
+dependencies[] = securepages
+core = 6.x
+version = "6.x-1.2"

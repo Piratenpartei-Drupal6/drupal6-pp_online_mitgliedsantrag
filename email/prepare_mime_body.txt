@@ -1,0 +1,20 @@
+Content-Type: multipart/mixed;
+ boundary="----%%boundary%%"
+
+This is a multi-part message in MIME format.
+------%%boundary%%
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+%%email%%
+
+------%%boundary%%
+Content-Type: text/plain;
+ name="%%filename%%"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline;
+ filename="%%filename%%"
+
+%%csv%%
+
+------%%boundary%%--
