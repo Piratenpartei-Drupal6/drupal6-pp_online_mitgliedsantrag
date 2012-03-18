@@ -7,7 +7,7 @@ Zeigt den Block mit dem Online-Mitgliedsantrag an.
 Abhängigkeiten
 --------------
 
-- pp_admin_menu https://github.com/Piratenpartei/drupal6-admin-menu
+- pp_admin_menu https://github.com/Piratenpartei/drupal6-pp_admin_menu
 - pp_opengeodb https://github.com/Piratenpartei/drupal6-pp_opengeodb
 - pp_ssl https://github.com/Piratenpartei/drupal6-pp_ssl
 
