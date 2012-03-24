@@ -382,6 +382,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 								$rvalue = $value["year"]."-".str_pad($value["month"], 2, 0, STR_PAD_LEFT)."-".str_pad($value["day"], 2, 0, STR_PAD_LEFT);
 								break;
 
+/*
 							case "nationalitaet":
 								$value = strtolower($value);
 								if (strpos($value, "deutsch") !== false)
@@ -389,6 +390,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 								else
 									$rvalue = $value;
 								break;
+*/
 
 							case "email_1":
 								$rkey = "email";
@@ -892,16 +894,20 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				);
 
 				$form['personal_data']['pp_online_mitgliedsantrag_nationalitaet'] = array(
-					'#type' => 'textfield',
+					'#type' => 'select',
 					'#title' => t('Nationalität'),
 					'#description' => t('Eine deutsche Staatsangehörigkeit ist nicht notwendig.'),
-					'#default_value' => "deutsch",
+					'#default_value' => "DE",
 					'#required' => true,
 					'#attributes' => array(
-						'class' => 'pp_online_mitgliedsantrag_width_30',
+						'class' => 'pp_online_mitgliedsantrag_width_50',
 					),
+					'#options' => array(),
 				);
-
+				module_load_include('inc', 'pp_online_mitgliedsantrag', 'pp_online_mitgliedsantrag_nationalitaeten');
+				foreach(pp_online_mitgliedsantrag_get_nationalitaeten() as $nk => $nv) {
+					$form['personal_data']['pp_online_mitgliedsantrag_nationalitaet']['#options'][$nk] = $nv;
+				}
 
 
 				$form['contact_data'] = array(
