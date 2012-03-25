@@ -40,7 +40,7 @@ $(document).ready(function() {
 		if (zipcode.length >= 3) {
 			$.ajax({
 				type: "POST",
-				url: "ajax/membership/get/citiesbyzipcode",
+				url: "/ajax/membership/get/citiesbyzipcode",
 				data: "zipcode="+zipcode,
 				dataType: "json",
 				success: function(cities) {
@@ -59,7 +59,7 @@ $(document).ready(function() {
 		var zipcode = $('#edit-pp-online-mitgliedsantrag-plz').val();
 		$.ajax({
 			type: "POST",
-			url: "ajax/membership/get/zipcodebycity",
+			url: "/ajax/membership/get/zipcodebycity",
 			data: "city="+city+"&zipcode="+zipcode,
 			dataType: "json",
 			success: function(zipcode) {
