@@ -409,6 +409,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 								break;
 						}
 
+/*
 						switch($rkey) {
 							case "kontoinhaber":
 							case "blz":
@@ -419,6 +420,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 							default:
 								$csv = str_replace("%%".$rkey."%%", $rvalue, $csv);
 						}
+*/
+
+						$csv = str_replace("%%".$rkey."%%", $rvalue, $csv);
 
 						switch ($rkey) {
 							case "einzug":

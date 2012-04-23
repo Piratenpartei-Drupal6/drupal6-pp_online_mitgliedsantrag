@@ -2,7 +2,9 @@ Ahoi lieber Vorstand,
 folgender Benutzer hat einen Online-Mitgliedsantrag gestellt und bittet um Aufnahme:
 
 %%vorname%% %%nachname%%
+%%strasse%% %%hausnummer%%
 %%plz%% %%ort%%
+%%geburtsdatum%%
 %%email%%
 
 %%beitrag%% Euro
