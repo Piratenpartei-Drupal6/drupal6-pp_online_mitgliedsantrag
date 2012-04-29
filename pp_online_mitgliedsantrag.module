@@ -279,7 +279,7 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 					if (!ctype_digit($beitrag))
 						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Das Feld Mitgliedsbeitrag muss eine natürliche Zahl enthalten.'));
 					else if (intval($beitrag) < PP_ONLINE_MITGLIEDSANTRAG_FEE)
-						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens @fee € im Jahr.', array('fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)));
+						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens @fee € im Jahr.', array('@fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)));
 				}
 
 
@@ -961,7 +961,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				$form['pay_data']['pp_online_mitgliedsantrag_beitrag'] = array(
 					'#type' => 'textfield',
 					'#title' => t('Mitgliedsbeitrag'),
-					'#description' => t('Der Mitgliedsbeitrag beträgt @fee € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.', array('fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)),
+					'#description' => t('Der Mitgliedsbeitrag beträgt @fee € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.', array('@fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)),
 					'#required' => true,
 					'#attributes' => array(
 						'class' => 'pp_online_mitgliedsantrag_width_30',
