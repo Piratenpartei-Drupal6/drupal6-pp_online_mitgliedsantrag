@@ -7,6 +7,10 @@
 define("PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL", 7);
 define("PP_ONLINE_MITGLIEDSANTRAG_CRON_INTERVAL", 60);
 
+if (date() >= strtotime("29 April 2012")
+	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 48);
+else
+	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 36);
 
 
 function pp_online_mitgliedsantrag_requirements($phase) {
@@ -274,8 +278,8 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 					$beitrag = $form_state['values']['pp_online_mitgliedsantrag_beitrag'];
 					if (!ctype_digit($beitrag))
 						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Das Feld Mitgliedsbeitrag muss eine natürliche Zahl enthalten.'));
-					else if (intval($beitrag) < 36)
-						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens 36 € im Jahr.'));
+					else if (intval($beitrag) < PP_ONLINE_MITGLIEDSANTRAG_FEE)
+						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens @fee € im Jahr.', array('fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)));
 				}
 
 
@@ -957,7 +961,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				$form['pay_data']['pp_online_mitgliedsantrag_beitrag'] = array(
 					'#type' => 'textfield',
 					'#title' => t('Mitgliedsbeitrag'),
-					'#description' => t('Der Mitgliedsbeitrag beträgt 36 € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.'),
+					'#description' => t('Der Mitgliedsbeitrag beträgt @fee € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.', array('fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)),
 					'#required' => true,
 					'#attributes' => array(
 						'class' => 'pp_online_mitgliedsantrag_width_30',
