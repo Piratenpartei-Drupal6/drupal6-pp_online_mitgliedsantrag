@@ -7,7 +7,7 @@
 define("PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL", 7);
 define("PP_ONLINE_MITGLIEDSANTRAG_CRON_INTERVAL", 60);
 
-if (date() >= strtotime("29 April 2012")
+if (date() >= strtotime("29 April 2012"))
 	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 48);
 else
 	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 36);
