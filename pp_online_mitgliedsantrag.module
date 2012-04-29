@@ -7,7 +7,7 @@
 define("PP_ONLINE_MITGLIEDSANTRAG_DELETE_INTERVAL", 7);
 define("PP_ONLINE_MITGLIEDSANTRAG_CRON_INTERVAL", 60);
 
-if (date() >= strtotime("29 April 2012"))
+if (time() >= strtotime("30 April 2012"))
 	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 48);
 else
 	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 36);
@@ -279,7 +279,7 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 					if (!ctype_digit($beitrag))
 						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Das Feld Mitgliedsbeitrag muss eine natürliche Zahl enthalten.'));
 					else if (intval($beitrag) < PP_ONLINE_MITGLIEDSANTRAG_FEE)
-						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens @fee € im Jahr.', array('@fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)));
+						form_set_error('pp_online_mitgliedsantrag_beitrag', t('Der Mitgliedsbeitrag beträgt mindestens @fee € im Jahr.', array('@fee' => PP_ONLINE_MITGLIEDSANTRAG_FEE)));
 				}
 
 
@@ -384,6 +384,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 						switch ($rkey) {
 							case "geburtsdatum":
 								$rvalue = $value["year"]."-".str_pad($value["month"], 2, 0, STR_PAD_LEFT)."-".str_pad($value["day"], 2, 0, STR_PAD_LEFT);
+
+								$rrvalue = str_pad($value["day"], 2, 0, STR_PAD_LEFT).".".str_pad($value["month"], 2, 0, STR_PAD_LEFT).".".$value["year"];
+								$email = str_replace("%%".$rkey."%%", $rrvalue, $email);
 								break;
 
 /*
@@ -457,6 +460,8 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$city = $form_state['values']['pp_online_mitgliedsantrag_ort'];
 				$geodata = pp_opengeodb_api_getEntryByZipcodeAndCity($zipcode, $city);
 
+				$email = str_replace("%%landkreis%%", $geodata["landkreis"], $email);
+				
 				$csv = str_replace("%%lv_short%%", pp_opengeodb_api_getStateShortcut($state), $csv);
 
 				$csv = str_replace("%%bundesland%%", $geodata["bundesland"], $csv);
@@ -616,7 +621,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$org = "Landesverband";
 				$to2 = "";
 				if ($kv_key) {
-					$org = $geodata["landkreis"];
+					$org = "Kreisverband ".$geodata["landkreis"];
 
 					$receiver2 = $gpg->getKeys($kv_key);
 					$receiver2 = $receiver2[0]->getUserIds();
@@ -961,7 +966,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				$form['pay_data']['pp_online_mitgliedsantrag_beitrag'] = array(
 					'#type' => 'textfield',
 					'#title' => t('Mitgliedsbeitrag'),
-					'#description' => t('Der Mitgliedsbeitrag beträgt @fee € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.', array('@fee', PP_ONLINE_MITGLIEDSANTRAG_FEE)),
+					'#description' => t('Der Mitgliedsbeitrag beträgt @fee € im Jahr.<br>Darüber hinaus wird ein freiwilliger Beitrag in Höhe von 1% des Nettojahresgehalts empfohlen.', array('@fee' => PP_ONLINE_MITGLIEDSANTRAG_FEE)),
 					'#required' => true,
 					'#attributes' => array(
 						'class' => 'pp_online_mitgliedsantrag_width_30',
