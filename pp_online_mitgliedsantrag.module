@@ -1074,7 +1074,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 
 				$form['additional_data']['pp_online_mitgliedsantrag_beitragsminderung'] = array(
 					'#type' => 'checkbox',
-					'#title' => t('Leider kann ich den Regelbeitrag von 3 € im Monat nicht aufbringen und bitte um Beitragsminderung. Mein Antrag zur Mitgliedschaft ruht solange bis die Beitragsminderung bewilligt wurde. Bitte senden Sie mir alle notwendigen Informationen an meine angegebene E-Mail Adresse.'),
+					'#title' => t('Leider kann ich den Regelbeitrag von @beitrag € im Monat nicht aufbringen und bitte um Beitragsminderung. Mein Antrag zur Mitgliedschaft ruht solange bis die Beitragsminderung bewilligt wurde. Bitte senden Sie mir alle notwendigen Informationen an meine angegebene E-Mail Adresse.', array('@beitrag' => PP_ONLINE_MITGLIEDSANTRAG_FEE/12)),
 				);
 
 				$form['additional_data']['pp_online_mitgliedsantrag_comment'] = array(
