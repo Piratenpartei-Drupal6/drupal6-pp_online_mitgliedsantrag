@@ -825,7 +825,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				$form['personal_data'] = array(
 					'#type' => 'fieldset',
 					'#title' => t('Persönliche Daten'),
-					'#description' => t('Bitte teile uns Deinen Erstwohnsitz mit. Es ist ein Wohnsitz in Hessen notwendig.<br>Für Mitgliedschaften in anderen Landesverbänden folge bitte <a href=@link>diesem Link</a>', array('@link' => 'https://www.piratenpartei.de/mitmachen/mitglied-werden/')),
+					'#description' => t('Bitte teile uns Deinen Erstwohnsitz mit. Es ist ein Wohnsitz in Deutschland notwendig.<br>Für Mitgliedschaften in anderen Landesverbänden folge bitte <a href=@link>diesem Link</a>', array('@link' => 'https://www.piratenpartei.de/mitmachen/mitglied-werden/')),
 				);
 
 				$form['personal_data']['pp_online_mitgliedsantrag_vorname'] = array(
