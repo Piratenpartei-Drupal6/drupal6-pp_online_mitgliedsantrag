@@ -1090,7 +1090,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 
 				$form['generel_data']['pp_online_mitgliedsantrag_satzung'] = array(
 					'#type' => 'checkbox',
-					'#title' => t('Die <a href="/landesverband/satzung">Satzung</a> der Piratenpartei Hessen erkenne ich an. Der Antrag gilt auch für alle bestehenden und zu gründenden Untergliederungen der Piratenpartei Hessen an meinem Wohnsitz. Die Partei darf über meine E-Mail-Adresse mit mir Kontakt aufnehmen. Ich erteile mit diesem Antrag die notwendige schriftliche Einwilligung, dass die in diesem Formular gemachten Angaben an die Piratenpartei Hessen übermittelt und ausschließlich für interne Zwecke der Partei verarbeitet werden dürfen.'),
+					'#title' => t('Die <a href="/landesverband/satzung">Satzung</a> der Piratenpartei Hessen erkenne ich an. Der Antrag gilt auch für alle bestehenden und zu gründenden Untergliederungen der Piratenpartei Hessen an meinem Wohnsitz. Ich bestätige, dass mein Antrag in der Vergangenheit noch von keiner anderen Gliederung der Piratenpartei abgelehnt wurde. Die Partei darf über meine E-Mail-Adresse mit mir Kontakt aufnehmen. Ich erteile mit diesem Antrag die notwendige schriftliche Einwilligung, dass die in diesem Formular gemachten Angaben an die Piratenpartei Hessen übermittelt und ausschließlich für interne Zwecke der Partei verarbeitet werden dürfen.'),
 				);
 
 				$form['generel_data']['pp_online_mitgliedsantrag_datenschutz'] = array(
