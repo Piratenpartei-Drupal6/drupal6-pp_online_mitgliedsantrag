@@ -812,7 +812,7 @@ function pp_online_mitgliedsantrag_check_gpg($key) {
 
 
 function pp_online_mitgliedsantrag_get_gpg_info($key) {
-		$subkeys = $key->getSubKeys();
+		$subkeys = $gpg->getKeys($key)->getSubKeys();
 		$private = false;
 		$expired = false;
 		$invalid = false;
