@@ -817,7 +817,14 @@ function pp_online_mitgliedsantrag_get_gpg_info($key) {
 	$invalid = false;
 
 	try {
-		$subkeys = $gpg->getKeys($key)->getSubKeys();
+		watchdog('pp_online_mitgliedsantrag', $key);
+
+		$key = $gpg->getKeys($key);
+		watchdog('pp_online_mitgliedsantrag', get_class($key));
+
+		$subkeys = $key->getSubKeys();
+		watchdog('pp_online_mitgliedsantrag', sizeof($subkeys));
+
 		foreach ($subkeys as $subkey) {
 			if ($subkey->hasPrivate())
 				$private = true;
