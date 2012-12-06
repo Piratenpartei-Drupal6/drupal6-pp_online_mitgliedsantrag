@@ -564,6 +564,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$email = trim($email);
 				$confirmation = trim($confirmation);
 
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("prepare gpg"));
+
 			// gpg
 				if (!pp_online_mitgliedsantrag_init_gpg())
 					return;
@@ -641,6 +644,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 					$to2 = $receiver2[0]->getEmail();
 				}
 
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("write to db"));
+
 			// store to db
 				$obj = new stdClass();
 				$obj->date = date("Y-m-d H:i:s");
@@ -650,6 +656,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$obj->email = $email;
 				$obj->org = $org;
 				drupal_write_record('pp_online_mitgliedsantrag', $obj);
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("sending mail"));
 
 			// send email
 				module_load_include('inc', 'phpmailer', 'includes/phpmailer.class');
@@ -675,6 +684,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				#$form_state['rebuild'] = TRUE;
 				$form_state['storage']['page']++;
 				$form_state['storage']['code'] = $code;
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("next page"));
 
 		} else {
 			// load database record
