@@ -382,6 +382,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 			// load confirmation email
 				$confirmation = file_get_contents(drupal_get_path('module', 'pp_online_mitgliedsantrag').'/email/bestaetigen.txt');
 
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("templates loaded"));
+
 			// replacements form fields
 				foreach($form_state['values'] as $key => $value) {
 					if (strpos($key, "pp_online_mitgliedsantrag_") !== false) {
@@ -459,6 +462,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 										$form_state['values']['pp_online_mitgliedsantrag_blz']." ".$form_state['values']['pp_online_mitgliedsantrag_bank']."\n";
 				}
 				$email = str_replace("%%bankverbindung%%", $bankverbindung, $email);
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("replacements ready"));
 
 			// get state, district and county
 				$state = variable_get('pp_online_mitgliedsantrag_state', NULL);
