@@ -817,13 +817,13 @@ function pp_online_mitgliedsantrag_get_gpg_info($gpg, $key) {
 	$invalid = false;
 
 	try {
-		watchdog('pp_online_mitgliedsantrag', $key);
+		watchdog('pp_online_mitgliedsantrag', t("key")." ".$key);
 
 		$key = $gpg->getKeys($key);
-		watchdog('pp_online_mitgliedsantrag', get_class($key));
+		watchdog('pp_online_mitgliedsantrag', t("class")." ".get_class($key));
 
 		$subkeys = $key->getSubKeys();
-		watchdog('pp_online_mitgliedsantrag', sizeof($subkeys));
+		watchdog('pp_online_mitgliedsantrag', t("count")." ".sizeof($subkeys));
 
 		foreach ($subkeys as $subkey) {
 			if ($subkey->hasPrivate())
