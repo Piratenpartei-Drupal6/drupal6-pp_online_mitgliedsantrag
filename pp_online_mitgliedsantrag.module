@@ -565,12 +565,15 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$confirmation = trim($confirmation);
 
 			// debug
-				watchdog('pp_online_mitgliedsantrag', t("prepare gpg"));
+				watchdog('pp_online_mitgliedsantrag', t("init gpg"));
 
 			// gpg
 				if (!pp_online_mitgliedsantrag_init_gpg())
 					return;
 				$gpg = pp_online_mitgliedsantrag_get_gpg();
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("get gpg vars"));
 
 			// keys
 				$ekey = variable_get('pp_online_mitgliedsantrag_receiver', NULL);
@@ -581,6 +584,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				#echo $skey."\n";
 				#echo $pass."\n";
 				#die();
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("prepare gpg receiver and sender"));
 
 			// get receiver and sender
 				$receiver = $gpg->getKeys($ekey);
@@ -593,6 +599,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				#print_r($sender);
 				$from_name = $sender[0]->getName();
 				$from = $sender[0]->getEmail();
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("prepare gpg mail"));
 
 			// generate boundy
 				$uniq_id = md5(uniqid(time()));
@@ -612,6 +621,9 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				#echo "<pre>";
 				#print_r($email);
 				#die("exit");
+
+			// debug
+				watchdog('pp_online_mitgliedsantrag', t("encrypt and sign"));
 
 			// encrypt and sign
 /*
