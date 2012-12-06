@@ -635,7 +635,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				#die("stop");
 */
 				watchdog('pp_online_mitgliedsantrag', $ekey);
-				if (!pp_online_mitgliedsantrag_check_gpg($ekey)) {
+				if (!pp_online_mitgliedsantrag_check_gpg($gpg, $ekey)) {
 					form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $ekey)));
 					return;
 				}
@@ -644,7 +644,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 
 				if ($kv_key) {
 					watchdog('pp_online_mitgliedsantrag', $kv_key);
-					if (!pp_online_mitgliedsantrag_check_gpg($kv_key)) {
+					if (!pp_online_mitgliedsantrag_check_gpg($gpg, $kv_key)) {
 						form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $kv_key)));
 						return;
 					}
@@ -653,7 +653,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				}
 
 				watchdog('pp_online_mitgliedsantrag', $skey);
-				if (!pp_online_mitgliedsantrag_check_gpg($skey)) {
+				if (!pp_online_mitgliedsantrag_check_gpg($gpg, $skey)) {
 					form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $skey)));
 					return;
 				}
@@ -801,8 +801,8 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 }
 
 
-function pp_online_mitgliedsantrag_check_gpg($key) {
-	$key_info = pp_online_mitgliedsantrag_get_gpg_info($key);
+function pp_online_mitgliedsantrag_check_gpg($gpg, $key) {
+	$key_info = pp_online_mitgliedsantrag_get_gpg_info($gpg, $key);
 
 	if ($key_info["expired"] || $key_info["invalid"])
 		return false;
@@ -811,7 +811,7 @@ function pp_online_mitgliedsantrag_check_gpg($key) {
 }
 
 
-function pp_online_mitgliedsantrag_get_gpg_info($key) {
+function pp_online_mitgliedsantrag_get_gpg_info($gpg, $key) {
 	$private = false;
 	$expired = false;
 	$invalid = false;
