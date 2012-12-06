@@ -634,12 +634,24 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				echo "---------------------------------------------------------------------------------------------------------<br>\n";
 				#die("stop");
 */
+				if (!pp_online_mitgliedsantrag_check_gpg($ekey)) {
+					form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $ekey)));
+					return;
+				}
 				$gpg->addEncryptKey($ekey);
 				watchdog('pp_online_mitgliedsantrag', $ekey);
 
 				if ($kv_key) {
+					if (!pp_online_mitgliedsantrag_check_gpg($kv_key)) {
+						form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $kv_key)));
+						return;
+					}
 					$gpg->addEncryptKey($kv_key);
 					watchdog('pp_online_mitgliedsantrag', $kv_key);
+				}
+				if (!pp_online_mitgliedsantrag_check_gpg($skey)) {
+					form_set_error('pp_online_mitgliedsantrag_info', t('Der PGP-Key %key ist abgelaufen oder ungultig. Bitte bei der <a href="mailto:mitgliederverwaltung@piratenpartei-hessen.de">Mitgliederverwaltung melden.', array("%key" => $skey)));
+					return;
 				}
 				$gpg->addSignKey($skey, $pass);
 				watchdog('pp_online_mitgliedsantrag', $skey);
@@ -782,6 +794,38 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 
 	// return
 		return;
+}
+
+
+function pp_online_mitgliedsantrag_check_gpg($key) {
+	$key_info = pp_online_mitgliedsantrag_get_gpg_info($key);
+
+	if ($key_info["expired"] || $key_info["invalid"])
+		return false;
+	else
+		return true;
+}
+
+
+function pp_online_mitgliedsantrag_get_gpg_info($key) {
+		$subkeys = $key->getSubKeys();
+		$private = false;
+		$expired = false;
+		$invalid = false;
+		foreach ($subkeys as $subkey) {
+			if ($subkey->hasPrivate())
+				$private = true;
+			if ($subkey->getExpirationDate() < time() && $subkey->getExpirationDate() != 0)
+				$expired = true;
+			if ($subkey->isRevoked())
+				$invalid = true;
+		}
+
+		return array(
+			"private"	=>	$private,
+			"expired"	=>	$expired,
+			"invalid"	=>	$invalid,
+		);
 }
 
 
