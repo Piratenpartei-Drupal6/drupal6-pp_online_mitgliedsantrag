@@ -251,6 +251,8 @@ function pp_online_mitgliedsantrag_block($op = 'list', $delta = '', $edit = arra
 function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 	// debug
 		#echo "VALIDATE";
+		watchdog('pp_online_mitgliedsantrag', t("pp_online_mitgliedsantrag_form_validate"));
+		watchdog('pp_online_mitgliedsantrag', t("page")." ".$form_state['storage']['page']);
 
 	// check page
 		if ($form_state['storage']['page'] == 1) {
@@ -358,6 +360,10 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 
 
 function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
+	// debug
+		watchdog('pp_online_mitgliedsantrag', t("pp_online_mitgliedsantrag_form_submit"));
+		watchdog('pp_online_mitgliedsantrag', t("page")." ".$form_state['storage']['page']);
+
 	// check page
 		if ($form_state['storage']['page'] == 1) {
 
@@ -461,7 +467,7 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$geodata = pp_opengeodb_api_getEntryByZipcodeAndCity($zipcode, $city);
 
 				$email = str_replace("%%landkreis%%", $geodata["landkreis"], $email);
-				
+
 				$csv = str_replace("%%lv_short%%", pp_opengeodb_api_getStateShortcut($state), $csv);
 
 				$csv = str_replace("%%bundesland%%", $geodata["bundesland"], $csv);
