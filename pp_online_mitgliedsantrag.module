@@ -816,15 +816,9 @@ function pp_online_mitgliedsantrag_get_gpg_info($gpg, $key) {
 	$expired = false;
 	$invalid = false;
 
-	try {
-		watchdog('pp_online_mitgliedsantrag', t("key")." ".$key);
-
-		$key = $gpg->getKeys($key);
-		watchdog('pp_online_mitgliedsantrag', t("class")." ".get_class($key));
-		watchdog('pp_online_mitgliedsantrag', t("type")." ".gettype($key));
-
+	$keys = $gpg->getKeys($key);
+	foreach ($keys as $key) {
 		$subkeys = $key->getSubKeys();
-		watchdog('pp_online_mitgliedsantrag', t("count")." ".sizeof($subkeys));
 
 		foreach ($subkeys as $subkey) {
 			if ($subkey->hasPrivate())
@@ -834,20 +828,13 @@ function pp_online_mitgliedsantrag_get_gpg_info($gpg, $key) {
 			if ($subkey->isRevoked())
 				$invalid = true;
 		}
-
-		return array(
-			"private"	=>	$private,
-			"expired"	=>	$expired,
-			"invalid"	=>	$invalid,
-		);
-	} catch (Exception $e) {
-		watchdog('pp_online_mitgliedsantrag', $e->getMessage());
-		return array(
-			"private"	=>	$private,
-			"expired"	=>	$expired,
-			"invalid"	=>	$invalid,
-		);
 	}
+
+	return array(
+		"private"	=>	$private,
+		"expired"	=>	$expired,
+		"invalid"	=>	$invalid,
+	);
 }
 
 
