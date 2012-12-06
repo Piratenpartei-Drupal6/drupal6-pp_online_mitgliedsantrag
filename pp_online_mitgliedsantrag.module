@@ -821,6 +821,7 @@ function pp_online_mitgliedsantrag_get_gpg_info($gpg, $key) {
 
 		$key = $gpg->getKeys($key);
 		watchdog('pp_online_mitgliedsantrag', t("class")." ".get_class($key));
+		watchdog('pp_online_mitgliedsantrag', t("type")." ".gettype($key));
 
 		$subkeys = $key->getSubKeys();
 		watchdog('pp_online_mitgliedsantrag', t("count")." ".sizeof($subkeys));
