@@ -145,6 +145,10 @@ fieldset.pp_online_mitgliedsantrag_admin_settings_county_fieldset div.form-item 
 	float: left;
 }
 
+fieldset.pp_online_mitgliedsantrag_admin_settings_county_fieldset div[id^='edit-pp-online-mitgliedsantrag-county'] {
+	clear: both;
+}
+
 fieldset.pp_online_mitgliedsantrag_admin_pgp_fieldset div.form-item {
 	width: 40%;
 	float: left;
