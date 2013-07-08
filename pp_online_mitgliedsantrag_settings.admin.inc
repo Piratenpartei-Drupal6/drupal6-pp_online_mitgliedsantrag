@@ -159,7 +159,7 @@ function pp_online_mitgliedsantrag_admin_settings_form() {
 		if (empty($state)) {
 			$form['district']['note'] = array(
 				'#type' => 'item',
-				'#description' => t('Bitte erst ein Bundesland ausgewählen.'),
+				'#description' => t('Bitte erst ein Bundesland auswählen.'),
 			);
 		} else {
 			$counties = pp_opengeodb_api_getCountiesByState($state);
@@ -173,17 +173,27 @@ function pp_online_mitgliedsantrag_admin_settings_form() {
 			asort($receiver);
 			$receiver = array_merge(array("" => "Kein Key"), $receiver);
 			foreach ($counties as $county) {
-				$name = 'pp_online_mitgliedsantrag_county_'.strtolower($state).'_'.strtolower($county);
-				$form['district'][$name] = array(
+				$name_c = 'pp_online_mitgliedsantrag_county_'.strtolower($state).'_'.strtolower($county);
+				$name = 'pp_online_mitgliedsantrag_receiver_'.strtolower($state).'_'.strtolower($county);
+
+				$class = "";
+				$default_value = variable_get($name, NULL);
+				if (!empty($default_value)) {
+					if (!isset($receiver[$default_value])) {
+						$class = "form-text-error";
+					}
+				}
+
+				$form['district'][$name_c] = array(
 					'#type' => 'textfield',
 					'#default_value' => $county,
 					'#disabled' => true,
+					'#attributes' => array('class' => $class),
 				);
-
-				$name = 'pp_online_mitgliedsantrag_receiver_'.strtolower($state).'_'.strtolower($county);
+				
 				$form['district'][$name] = array(
 					'#type' => 'select',
-					'#default_value' => variable_get($name, NULL),
+					'#default_value' => $default_value,
 					'#options' => $receiver,
 				);
 			}
