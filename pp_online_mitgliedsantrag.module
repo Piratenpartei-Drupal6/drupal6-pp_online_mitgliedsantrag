@@ -12,6 +12,10 @@ if (time() >= strtotime("30 April 2012"))
 else
 	define("PP_ONLINE_MITGLIEDSANTRAG_FEE", 36);
 
+if (time() >= strtotime("21 February 2016"))
+	define("PP_ONLINE_MITGLIEDSANTRAG_AGE", 14);
+else
+	define("PP_ONLINE_MITGLIEDSANTRAG_AGE", 16);
 
 function pp_online_mitgliedsantrag_requirements($phase) {
   $requirements = array();
@@ -262,8 +266,8 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 				$day = $form_state['values']['pp_online_mitgliedsantrag_geburtsdatum']['day'];
 				/* http://drewd.com/2006/12/06/calculating-age-in-php-update */
 				$alter = floor((time() - strtotime($year."-".$month."-".$day))/(60*60*24*365.24219));
-				if ($alter < 16)
-					form_set_error('pp_online_mitgliedsantrag_geburtsdatum', t('Das Mindestalter für eine Mitgliedschaft liegt bei 16 Jahren.'));
+				if ($alter < PP_ONLINE_MITGLIEDSANTRAG_AGE)
+					form_set_error('pp_online_mitgliedsantrag_geburtsdatum', t('Das Mindestalter für eine Mitgliedschaft liegt bei '.PP_ONLINE_MITGLIEDSANTRAG_AGE.' Jahren.'));
 
 			// email
 				$email_1 = $form_state['values']['pp_online_mitgliedsantrag_email_1'];
@@ -989,11 +993,11 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 					),
 				);
 
-				$minage = strtotime("-16 years");
+				$minage = strtotime("-".PP_ONLINE_MITGLIEDSANTRAG_AGE." years");
 				$form['personal_data']['pp_online_mitgliedsantrag_geburtsdatum'] = array(
 					'#type' => 'date',
 					'#title' => t('Geburtsdatum'),
-					'#description' => t('Das Mindestalter für eine Mitgliedschaft liegt bei 16 Jahren.'),
+					'#description' => t('Das Mindestalter für eine Mitgliedschaft liegt bei '.PP_ONLINE_MITGLIEDSANTRAG_AGE.' Jahren.'),
 					'#required' => true,
 					'#default_value' => array(
 						'year' => date("Y", $minage),
