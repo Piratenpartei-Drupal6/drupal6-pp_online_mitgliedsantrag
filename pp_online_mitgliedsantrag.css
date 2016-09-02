@@ -93,6 +93,13 @@
 }
 
 
+#edit-pp-online-mitgliedsantrag-iban-wrapper {
+	width: 50%;
+	clear: both;
+	float: left;
+}
+
+
 #edit-pp-online-mitgliedsantrag-beitrag-wrapper {
 	width: 50%;
 	clear: both;
