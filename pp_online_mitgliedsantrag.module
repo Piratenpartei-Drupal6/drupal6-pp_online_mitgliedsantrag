@@ -473,10 +473,12 @@ function pp_online_mitgliedsantrag_form_submit($form, &$form_state) {
 				$bankverbindung = t("keine");
 				if ($form_state['values']['pp_online_mitgliedsantrag_einzug'] == 1) {
 					$bankverbindung = $form_state['values']['pp_online_mitgliedsantrag_kontoinhaber']."\n".
-										$form_state['values']['pp_online_mitgliedsantrag_kontonummer']."\n".
 										/* HIT-16
+										$form_state['values']['pp_online_mitgliedsantrag_kontonummer']."\n".
 										$form_state['values']['pp_online_mitgliedsantrag_blz']." ".$form_state['values']['pp_online_mitgliedsantrag_bank']."\n";/**/
-										$form_state['values']['pp_online_mitgliedsantrag_iban']."\n";
+										$form_state['values']['pp_online_mitgliedsantrag_bank']."\n".
+										$form_state['values']['pp_online_mitgliedsantrag_iban']."\n".
+										$form_state['values']['pp_online_mitgliedsantrag_bic']."\n";
 				}
 				$email = str_replace("%%bankverbindung%%", $bankverbindung, $email);
 
@@ -1171,6 +1173,14 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
 					$form['bank_data']['pp_online_mitgliedsantrag_iban']['#required'] = true;
 
+				$form['bank_data']['pp_online_mitgliedsantrag_bic'] = array(
+					'#type' => 'textfield',
+					'#title' => t('BIC'),
+					'#required' => false,
+					'#attributes' => array(
+						'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
 
 				$form['additional_data'] = array(
 					'#type' => 'fieldset',

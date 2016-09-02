@@ -98,6 +98,10 @@
 	clear: both;
 	float: left;
 }
+#edit-pp-online-mitgliedsantrag-bic-wrapper {
+	width: 50%;
+	float: right;
+}
 
 
 #edit-pp-online-mitgliedsantrag-beitrag-wrapper {
