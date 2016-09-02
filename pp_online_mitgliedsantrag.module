@@ -1110,6 +1110,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
 					$form['bank_data']['pp_online_mitgliedsantrag_kontoinhaber']['#required'] = true;
 
+				/* HIT-16
 				$form['bank_data']['pp_online_mitgliedsantrag_kontonummer'] = array(
 					'#type' => 'textfield',
 					'#title' => t('Kontonummer'),
@@ -1130,7 +1131,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 					),
 				);
 				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
-					$form['bank_data']['pp_online_mitgliedsantrag_blz']['#required'] = true;
+					$form['bank_data']['pp_online_mitgliedsantrag_blz']['#required'] = true;/**/
 
 				$form['bank_data']['pp_online_mitgliedsantrag_bank'] = array(
 					'#type' => 'textfield',
@@ -1143,6 +1144,17 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
 					$form['bank_data']['pp_online_mitgliedsantrag_bank']['#required'] = true;
 
+				/* HIT-16 */
+				$form['bank_data']['pp_online_mitgliedsantrag_iban'] = array(
+					'#type' => 'textfield',
+					'#title' => t('IBAN'),
+					'#required' => false,
+					'#attributes' => array(
+						//'class' => 'pp_online_mitgliedsantrag_width_100',
+					),
+				);
+				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
+					$form['bank_data']['pp_online_mitgliedsantrag_iban']['#required'] = true;/
 
 
 				$form['additional_data'] = array(
@@ -1152,6 +1164,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 					'#collapsed' => true,
 				);
 
+				/* HIT-16 
 				$form['additional_data']['pp_online_mitgliedsantrag_jupi_title'] = array(
 					'#type' => 'item',
 					'#title' => t('Junge Piraten'),
@@ -1165,7 +1178,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 				$form['additional_data']['pp_online_mitgliedsantrag_jupi_satzung'] = array(
 					'#type' => 'checkbox',
 					'#title' => t('Die <a href="http://wiki.junge-piraten.de/wiki/Satzung">Satzung</a> der Jungen Piraten erkenne ich an. Der Antrag gilt auch für alle bestehenden und zu gründenden Untergliederungen der Jungen Piraten an meinem Wohnsitz. Der Verein darf über meine E-Mail-Adresse mit mir Kontakt aufnehmen. Ich erteile mit diesem Antrag die notwendige schriftliche Einwilligung, dass die in diesem Formular gemachten Angaben an die Jungen Piraten übermittelt und ausschließlich für interne Zwecke des Vereins verarbeitet werden dürfen.'),
-				);
+				);/**/
 
 				$form['additional_data']['pp_online_mitgliedsantrag_beitragsminderung_title'] = array(
 					'#type' => 'item',

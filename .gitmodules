@@ -1,0 +1,3 @@
+[submodule "php-iban"]
+	path = php-iban
+	url = https://github.com/globalcitizen/php-iban.git
