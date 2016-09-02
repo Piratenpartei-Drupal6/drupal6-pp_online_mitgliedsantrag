@@ -1,3 +1,3 @@
-[submodule "php-iban"]
-	path = php-iban
+[submodule "lib/php-iban"]
+	path = lib/php-iban
 	url = https://github.com/globalcitizen/php-iban.git
