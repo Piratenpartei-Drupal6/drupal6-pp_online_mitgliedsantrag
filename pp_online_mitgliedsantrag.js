@@ -5,22 +5,30 @@ $(document).ready(function() {
 		if ($(this).is(':checked')) {
 			$(pp_online_mitgliedsantrag_required_hint).appendTo($("label[for='edit-pp-online-mitgliedsantrag-kontoinhaber']"));
 			$('#edit-pp-online-mitgliedsantrag-kontoinhaber').addClass("required");
+			/* HIT-16
 			$(pp_online_mitgliedsantrag_required_hint).appendTo($("label[for='edit-pp-online-mitgliedsantrag-kontonummer']"));
 			$('#edit-pp-online-mitgliedsantrag-kontonummer').addClass("required");
 			$(pp_online_mitgliedsantrag_required_hint).appendTo($("label[for='edit-pp-online-mitgliedsantrag-blz']"));
-			$('#edit-pp-online-mitgliedsantrag-blz').addClass("required");
+			$('#edit-pp-online-mitgliedsantrag-blz').addClass("required");/**/
 			$(pp_online_mitgliedsantrag_required_hint).appendTo($("label[for='edit-pp-online-mitgliedsantrag-bank']"));
 			$('#edit-pp-online-mitgliedsantrag-bank').addClass("required");
+			/* HIT-16 */
+			$(pp_online_mitgliedsantrag_required_hint).appendTo($("label[for='edit-pp-online-mitgliedsantrag-iban']"));
+			$('#edit-pp-online-mitgliedsantrag-iban').addClass("required");
 			$('#pp_online_bank_data fieldset').show();
 		} else {
 			$("label[for='edit-pp-online-mitgliedsantrag-kontoinhaber'] > span").remove();
 			$('#edit-pp-online-mitgliedsantrag-kontoinhaber').removeClass("required");
+			/* HIT-16
 			$("label[for='edit-pp-online-mitgliedsantrag-kontonummer'] > span").remove();
 			$('#edit-pp-online-mitgliedsantrag-kontonummer').removeClass("required");
 			$("label[for='edit-pp-online-mitgliedsantrag-blz'] > span").remove();
-			$('#edit-pp-online-mitgliedsantrag-blz').removeClass("required");
+			$('#edit-pp-online-mitgliedsantrag-blz').removeClass("required");/**/
 			$("label[for='edit-pp-online-mitgliedsantrag-bank'] > span").remove();
 			$('#edit-pp-online-mitgliedsantrag-bank').removeClass("required");
+			/* HIT-16 */
+			$("label[for='edit-pp-online-mitgliedsantrag-iban'] > span").remove();
+			$('#edit-pp-online-mitgliedsantrag-iban').removeClass("required");
 			$('#pp_online_bank_data fieldset').hide();
 		}
 	});

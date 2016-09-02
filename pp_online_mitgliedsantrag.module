@@ -1165,7 +1165,7 @@ function pp_online_mitgliedsantrag_form(&$form_state) {
 					'#title' => t('IBAN'),
 					'#required' => false,
 					'#attributes' => array(
-						//'class' => 'pp_online_mitgliedsantrag_width_100',
+						'class' => 'pp_online_mitgliedsantrag_width_100',
 					),
 				);
 				if ($form_state['post']['pp_online_mitgliedsantrag_einzug'] == 1)
