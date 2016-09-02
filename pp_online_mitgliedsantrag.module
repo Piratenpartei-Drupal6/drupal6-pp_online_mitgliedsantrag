@@ -1,5 +1,6 @@
 <?php
 
+require_once('lib/php-iban/php-iban.php');
 
 /**
  * Definition of constants
@@ -321,8 +322,8 @@ function pp_online_mitgliedsantrag_form_validate($form, &$form_state) {
 				/* HIT-16 */
 				if ($form_state['values']["pp_online_mitgliedsantrag_einzug"] == 1) {
 					$iban = $form_state['values']['pp_online_mitgliedsantrag_iban'];
-					if (!ctype_digit($blz))
-						form_set_error('pp_online_mitgliedsantrag_blz', t('Das Feld Bankleitzahl muss eine natürliche Zahl enthalten.'));
+					if (!verify_iban($iban))
+						form_set_error('pp_online_mitgliedsantrag_iban', t('Das Feld IBAN muss eine korrekte IBAN enthalten.'));
 				}/**/
 
 
